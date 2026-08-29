@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: nexus-3d-api
+    env: node
+    rootDir: backend
+    buildCommand: npm ci && npm run build
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_VERSION
+        value: 20
+      - key: DATABASE_URL
+        sync: false
+      - key: E2B_API_KEY
+        sync: false
+      - key: ABLY_API_KEY
+        sync: false
+      - key: CORS_ORIGIN
+        sync: false

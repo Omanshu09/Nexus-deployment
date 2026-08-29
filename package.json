@@ -1,0 +1,9 @@
+{
+  "name": "nexus-3d",
+  "private": true,
+  "scripts": {
+    "install:all": "npm --prefix frontend install && npm --prefix backend install",
+    "build": "npm --prefix frontend run build && npm --prefix backend run build",
+    "check": "npm --prefix frontend run check && npm --prefix backend run check"
+  }
+}
