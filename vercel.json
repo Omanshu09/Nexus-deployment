@@ -1,1 +1,13 @@
-{ "framework": "vite", "buildCommand": "npm run build", "outputDirectory": "dist" }
+```json
+{
+  "framework": "vite",
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
+  "rewrites": [
+    {
+      "source": "/nexus/room/:path*",
+      "destination": "/index.html"
+    }
+  ]
+}
+```
