@@ -1,5 +1,4 @@
-
-import React, { useEffect, useMemo, useRef, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { createRoot } from 'react-dom/client'
 import * as Ably from 'ably'
 import * as Y from 'yjs'
@@ -9,14 +8,27 @@ import { Float, Line, Stars } from '@react-three/drei'
 import * as THREE from 'three'
 import './styles.css'
 
-const API_URL = (import.meta.env.VITE_API_URL || 'http://localhost:8787').replace(/\/$/, '')
+const API_URL = (
+  import.meta.env.VITE_API_URL ||
+  'http://localhost:8787'
+).replace(/\/$/, '')
+
 const MAX_CODE = 20_000
 const MAX_NOTES = 20_000
 
-type Connection = 'connecting' | 'online' | 'offline' | 'error'
+type Connection =
+  | 'connecting'
+  | 'online'
+  | 'offline'
+  | 'error'
 
 type Execution = {
-  status: 'running' | 'completed' | 'failed' | 'timeout' | 'service-error'
+  status:
+    | 'running'
+    | 'completed'
+    | 'failed'
+    | 'timeout'
+    | 'service-error'
   output: string
   error: string | null
   by?: string
@@ -32,6 +44,7 @@ const base64ToBytes = (data: string) =>
 
 const clientId = (() => {
   const key = 'nexus-client-id'
+
   let id = localStorage.getItem(key)
 
   if (!id) {
@@ -42,37 +55,85 @@ const clientId = (() => {
   return id
 })()
 
-function slug() {
-  const parts = [
-    'blue',
-    'orbital',
-    'signal',
-    'quantum',
-    'vector',
-    'ember',
-    'lunar',
-    'neon'
-  ]
+/*
+ * Room IDs are URL-safe.
+ * The displayed room name is generated from the same ID.
+ */
+const adjectives = [
+  'lunar',
+  'neon',
+  'orbital',
+  'quantum',
+  'vector',
+  'ember',
+  'stellar',
+  'cyber',
+  'nova',
+  'signal'
+]
 
-  return `${parts[Math.floor(Math.random() * parts.length)]}-${
-    parts[Math.floor(Math.random() * parts.length)]
-  }-${Math.random().toString(36).slice(2, 6)}`
+const nouns = [
+  'orbital',
+  'signal',
+  'forge',
+  'lab',
+  'matrix',
+  'bridge',
+  'circuit',
+  'station',
+  'engine',
+  'grid'
+]
+
+function randomItem<T>(items: T[]) {
+  return items[
+    Math.floor(Math.random() * items.length)
+  ]
+}
+
+function slug() {
+  const first = randomItem(adjectives)
+  const second = randomItem(nouns)
+  const suffix = Math.random()
+    .toString(36)
+    .slice(2, 6)
+    .toUpperCase()
+
+  return `${first}-${second}-${suffix.toLowerCase()}`
+}
+
+function roomDisplayName(roomId: string) {
+  const parts = roomId.split('-')
+
+  if (parts.length < 3) {
+    return roomId
+  }
+
+  const suffix = parts.pop()!.toUpperCase()
+
+  return `${parts
+    .map(
+      part =>
+        part.charAt(0).toUpperCase() +
+        part.slice(1)
+    )
+    .join(' ')} ${suffix}`
 }
 
 function roomFromPath() {
-  const m = location.pathname.match(
+  const match = location.pathname.match(
     /^\/nexus\/room\/([a-z0-9-]{3,64})$/i
   )
 
-  return m?.[1]?.toLowerCase() || ''
+  return match?.[1]?.toLowerCase() || ''
 }
 
 function Network() {
-  const group = useRef<THREE.Group>(null)
+  const group = React.useRef<THREE.Group>(null)
 
-  useFrame((_, d) => {
+  useFrame((_, delta) => {
     if (group.current) {
-      group.current.rotation.y += d * 0.08
+      group.current.rotation.y += delta * 0.08
     }
   })
 
@@ -102,23 +163,40 @@ function Network() {
         speed={0.4}
       />
 
-      {points.map((p, i) => (
-        <Float key={i} speed={1.2} rotationIntensity={0.4}>
-          <mesh position={p}>
-            <sphereGeometry args={[0.07, 16, 16]} />
+      {points.map((point, index) => (
+        <Float
+          key={index}
+          speed={1.2}
+          rotationIntensity={0.4}
+        >
+          <mesh position={point}>
+            <sphereGeometry
+              args={[0.07, 16, 16]}
+            />
+
             <meshBasicMaterial
-              color={i % 3 ? '#6ee7ff' : '#a78bfa'}
+              color={
+                index % 3
+                  ? '#6ee7ff'
+                  : '#a78bfa'
+              }
             />
           </mesh>
         </Float>
       ))}
 
       {points.map(
-        (p, i) =>
-          i < points.length - 1 && (
+        (point, index) =>
+          index < points.length - 1 && (
             <Line
-              key={`l${i}`}
-              points={[p, points[(i * 7 + 3) % points.length]]}
+              key={`line-${index}`}
+              points={[
+                point,
+                points[
+                  (index * 7 + 3) %
+                    points.length
+                ]
+              ]}
               color="#224b75"
               transparent
               opacity={0.6}
@@ -132,14 +210,34 @@ function Network() {
 
 function Hero3D() {
   return (
-    <Canvas camera={{ position: [0, 0, 8], fov: 48 }}>
-      <color attach="background" args={['#050505']} />
+    <Canvas
+      camera={{
+        position: [0, 0, 8],
+        fov: 48
+      }}
+    >
+      <color
+        attach="background"
+        args={['#050505']}
+      />
+
       <ambientLight intensity={0.7} />
+
       <Network />
     </Canvas>
   )
 }
 
+/*
+ * IMPORTANT ARCHITECTURE:
+ *
+ * Yjs contains ONLY the collaborative Notepad.
+ *
+ * Python code is deliberately NOT inside Yjs.
+ * Therefore each browser has its own Python editor.
+ *
+ * Execution results remain shared through Ably.
+ */
 function useRoom(roomId: string) {
   const [state, setState] =
     useState<Connection>('connecting')
@@ -147,13 +245,9 @@ function useRoom(roomId: string) {
   const [execution, setExecution] =
     useState<Execution | null>(null)
 
-  const doc = useMemo(() => new Y.Doc(), [roomId])
-
-  // IMPORTANT:
-  // These are TWO completely independent Yjs shared texts.
-  const code = useMemo(
-    () => doc.getText('code'),
-    [doc]
+  const doc = useMemo(
+    () => new Y.Doc(),
+    [roomId]
   )
 
   const notes = useMemo(
@@ -163,23 +257,44 @@ function useRoom(roomId: string) {
 
   useEffect(() => {
     let cancelled = false
-    let realtime: Ably.Realtime | undefined
-    let channel: Ably.RealtimeChannel | undefined
-    let persist: IndexeddbPersistence | undefined
+
+    let realtime:
+      | Ably.Realtime
+      | undefined
+
+    let channel:
+      | Ably.RealtimeChannel
+      | undefined
+
+    let persistence:
+      | IndexeddbPersistence
+      | undefined
+
+    let saveTimer:
+      | number
+      | undefined
 
     const start = async () => {
       try {
+        /*
+         * Load saved collaborative Notepad state.
+         */
         const response = await fetch(
-          `${API_URL}/api/rooms/${encodeURIComponent(roomId)}`
+          `${API_URL}/api/rooms/${encodeURIComponent(
+            roomId
+          )}`
         )
 
         if (!response.ok) {
-          throw new Error('API unavailable')
+          throw new Error(
+            'Room API unavailable'
+          )
         }
 
-        const saved = await response.json() as {
-          state?: string
-        }
+        const saved =
+          (await response.json()) as {
+            state?: string
+          }
 
         if (saved.state) {
           Y.applyUpdate(
@@ -189,69 +304,104 @@ function useRoom(roomId: string) {
           )
         }
 
-        persist = new IndexeddbPersistence(
-          `nexus-${roomId}`,
-          doc
-        )
+        /*
+         * Local IndexedDB persistence applies
+         * to the shared Notepad document only.
+         */
+        persistence =
+          new IndexeddbPersistence(
+            `nexus-${roomId}`,
+            doc
+          )
 
-        realtime = new Ably.Realtime({
-          authCallback: async (_params, callback) => {
-            try {
-              const r = await fetch(
-                `${API_URL}/api/ably/token`,
-                {
-                  method: 'POST',
-                  headers: {
-                    'Content-Type': 'application/json'
-                  },
-                  body: JSON.stringify({
-                    roomId,
-                    clientId
-                  })
+        /*
+         * Ably authentication.
+         */
+        realtime =
+          new Ably.Realtime({
+            authCallback: async (
+              _params,
+              callback
+            ) => {
+              try {
+                const tokenResponse =
+                  await fetch(
+                    `${API_URL}/api/ably/token`,
+                    {
+                      method: 'POST',
+                      headers: {
+                        'Content-Type':
+                          'application/json'
+                      },
+                      body: JSON.stringify({
+                        roomId,
+                        clientId
+                      })
+                    }
+                  )
+
+                if (!tokenResponse.ok) {
+                  throw new Error(
+                    'Token request failed'
+                  )
                 }
-              )
 
-              if (!r.ok) {
-                throw new Error('Token request failed')
+                callback(
+                  null,
+                  await tokenResponse.json()
+                )
+              } catch (error) {
+                callback(
+                  {
+                    name: 'AuthError',
+                    message:
+                      error instanceof Error
+                        ? error.message
+                        : 'Token request failed',
+                    code: 401,
+                    statusCode: 401
+                  },
+                  null
+                )
               }
-
-              callback(null, await r.json())
-            } catch (e) {
-              callback(
-                {
-                  name: 'AuthError',
-                  message:
-                    e instanceof Error
-                      ? e.message
-                      : 'Token request failed',
-                  code: 401,
-                  statusCode: 401
-                },
-                null
-              )
             }
-          }
-        })
+          })
 
-        channel = realtime.channels.get(
-          `nexus:room:${roomId}`
-        )
+        channel =
+          realtime.channels.get(
+            `nexus:room:${roomId}`
+          )
 
+        /*
+         * Collaborative Notepad updates.
+         */
         channel.subscribe(
           'y-update',
           message => {
-            if (message.clientId === clientId) return
+            if (
+              message.clientId ===
+              clientId
+            ) {
+              return
+            }
 
             try {
               Y.applyUpdate(
                 doc,
-                base64ToBytes(message.data as string),
+                base64ToBytes(
+                  message.data as string
+                ),
                 'ably'
               )
-            } catch {}
+            } catch {
+              // Ignore malformed remote updates.
+            }
           }
         )
 
+        /*
+         * Initial room synchronization.
+         */
         channel.subscribe(
           'sync-request',
           message => {
@@ -270,9 +420,12 @@ function useRoom(roomId: string) {
                   'sync-response',
                   {
                     clientId: target,
-                    state: bytesToBase64(
-                      Y.encodeStateAsUpdate(doc)
-                    )
+                    state:
+                      bytesToBase64(
+                        Y.encodeStateAsUpdate(
+                          doc
+                        )
+                      )
                   }
                 )
                 .catch(() => undefined)
@@ -283,127 +436,179 @@ function useRoom(roomId: string) {
         channel.subscribe(
           'sync-response',
           message => {
-            const payload = message.data as {
-              clientId?: string
-              state?: string
-            }
+            const payload =
+              message.data as {
+                clientId?: string
+                state?: string
+              }
 
             if (
-              payload.clientId === clientId &&
+              payload.clientId ===
+                clientId &&
               payload.state
             ) {
               try {
                 Y.applyUpdate(
                   doc,
-                  base64ToBytes(payload.state),
+                  base64ToBytes(
+                    payload.state
+                  ),
                   'ably'
                 )
-              } catch {}
+              } catch {
+                // Ignore malformed state.
+              }
             }
           }
         )
 
+        /*
+         * Execution results are shared.
+         *
+         * The Python SOURCE is not shared.
+         * Only the RESULT is shared.
+         */
         channel.subscribe(
           'execution',
-          message =>
-            setExecution(message.data as Execution)
+          message => {
+            setExecution(
+              message.data as Execution
+            )
+          }
         )
 
-        const publish = (
+        /*
+         * Publish only collaborative Notepad updates.
+         */
+        const publishUpdate = (
           update: Uint8Array,
           origin: unknown
         ) => {
           if (
-            origin !== 'ably' &&
-            origin !== 'server'
+            origin === 'ably' ||
+            origin === 'server'
           ) {
-            channel
-              ?.publish(
-                'y-update',
-                bytesToBase64(update)
-              )
-              .catch(() =>
-                setState('offline')
-              )
+            return
           }
+
+          channel
+            ?.publish(
+              'y-update',
+              bytesToBase64(update)
+            )
+            .catch(() =>
+              setState('offline')
+            )
         }
 
-        doc.on('update', publish)
+        doc.on(
+          'update',
+          publishUpdate
+        )
 
         realtime.connection.on(
           'connected',
           () => {
-            if (!cancelled) {
-              setState('online')
-
-              channel
-                ?.publish(
-                  'sync-request',
-                  { clientId }
-                )
-                .catch(() => undefined)
+            if (cancelled) {
+              return
             }
+
+            setState('online')
+
+            channel
+              ?.publish(
+                'sync-request',
+                { clientId }
+              )
+              .catch(() => undefined)
           }
         )
 
         realtime.connection.on(
           'disconnected',
-          () =>
-            !cancelled &&
-            setState('offline')
+          () => {
+            if (!cancelled) {
+              setState('offline')
+            }
+          }
         )
 
         realtime.connection.on(
           'suspended',
-          () =>
-            !cancelled &&
-            setState('offline')
+          () => {
+            if (!cancelled) {
+              setState('offline')
+            }
+          }
         )
 
         realtime.connection.on(
           'failed',
-          () =>
-            !cancelled &&
-            setState('error')
+          () => {
+            if (!cancelled) {
+              setState('error')
+            }
+          }
         )
 
-        let saveTimer: number | undefined
-
+        /*
+         * Persist ONLY the collaborative Notepad.
+         */
         const scheduleSave = () => {
-          clearTimeout(saveTimer)
+          window.clearTimeout(
+            saveTimer
+          )
 
           saveTimer = window.setTimeout(
-            () =>
-              fetch(
-                `${API_URL}/api/rooms/${encodeURIComponent(roomId)}`,
-                {
-                  method: 'PUT',
-                  headers: {
-                    'Content-Type':
-                      'application/json'
-                  },
-                  body: JSON.stringify({
-                    state: bytesToBase64(
-                      Y.encodeStateAsUpdate(doc)
-                    )
-                  })
+            async () => {
+              try {
+                await fetch(
+                  `${API_URL}/api/rooms/${encodeURIComponent(
+                    roomId
+                  )}`,
+                  {
+                    method: 'PUT',
+                    headers: {
+                      'Content-Type':
+                        'application/json'
+                    },
+                    body: JSON.stringify({
+                      state:
+                        bytesToBase64(
+                          Y.encodeStateAsUpdate(
+                            doc
+                          )
+                        )
+                    })
+                  }
+                )
+              } catch {
+                if (!cancelled) {
+                  setState('offline')
                 }
-              ).catch(() =>
-                setState('offline')
-              ),
-            1200
+              }
+            },
+            1000
           )
         }
 
-        // Both the Notepad and Python Runner are persisted.
-        code.observe(scheduleSave)
-        notes.observe(scheduleSave)
+        notes.observe(
+          scheduleSave
+        )
 
         return () => {
-          doc.off('update', publish)
-          code.unobserve(scheduleSave)
-          notes.unobserve(scheduleSave)
-          clearTimeout(saveTimer)
+          doc.off(
+            'update',
+            publishUpdate
+          )
+
+          notes.unobserve(
+            scheduleSave
+          )
+
+          window.clearTimeout(
+            saveTimer
+          )
         }
       } catch {
         if (!cancelled) {
@@ -412,25 +617,30 @@ function useRoom(roomId: string) {
       }
     }
 
-    let cleanup: undefined | (() => void)
+    let cleanup:
+      | (() => void)
+      | undefined
 
-    start().then(x => {
-      cleanup = x
+    start().then(result => {
+      cleanup = result
     })
 
     return () => {
       cancelled = true
+
       cleanup?.()
+
       channel?.detach()
+
       realtime?.close()
-      persist?.destroy()
+
+      persistence?.destroy()
+
       doc.destroy()
     }
-  }, [roomId, doc, code, notes])
+  }, [roomId, doc, notes])
 
   return {
-    doc,
-    code,
     notes,
     state,
     execution,
@@ -451,11 +661,15 @@ function ThemeToggle({
       role="group"
       aria-label="Theme"
     >
-      <span className="theme-icon">☀</span>
+      <span className="theme-icon">
+        ☀
+      </span>
 
       <button
         className={`theme-switch ${
-          theme === 'dark' ? 'is-dark' : ''
+          theme === 'dark'
+            ? 'is-dark'
+            : ''
         }`}
         onClick={() =>
           setTheme(
@@ -486,20 +700,32 @@ function Workspace({
   roomId: string
 }) {
   const {
-    code: sharedCode,
     notes: sharedNotes,
     state,
     execution,
     setExecution
   } = useRoom(roomId)
 
-  const [code, setCode] = useState(
-    'print("Hello Nexus")'
-  )
+  /*
+   * Python is LOCAL to this browser.
+   *
+   * It deliberately does not come from Yjs.
+   */
+  const [code, setCode] =
+    useState(
+      'print("Hello Nexus")'
+    )
 
-  const [notes, setNotes] = useState('')
+  /*
+   * Notepad is collaborative.
+   */
+  const [notes, setNotes] =
+    useState('')
 
   const [running, setRunning] =
+    useState(false)
+
+  const [copied, setCopied] =
     useState(false)
 
   const [theme, setTheme] =
@@ -514,11 +740,8 @@ function Workspace({
         : 'dark'
     })
 
-  const codeEditorRef =
-    useRef<HTMLTextAreaElement>(null)
-
-  const notesEditorRef =
-    useRef<HTMLTextAreaElement>(null)
+  const roomName =
+    roomDisplayName(roomId)
 
   useEffect(() => {
     document.documentElement.dataset.theme =
@@ -530,96 +753,102 @@ function Workspace({
     )
   }, [theme])
 
-  // Keep Python Runner synchronized with Yjs "code".
+  /*
+   * Receive shared Notepad updates.
+   */
   useEffect(() => {
-    const refresh = () => {
-      const value = sharedCode.toString()
-
-      // Preserve the starter Python code for a brand-new room.
-      if (!value) {
-        if (sharedCode.length === 0) {
-          sharedCode.insert(
-            0,
-            'print("Hello Nexus")'
-          )
-        }
-
-        return
-      }
-
-      setCode(value)
+    const refreshNotes = () => {
+      setNotes(
+        sharedNotes.toString()
+      )
     }
 
-    sharedCode.observe(refresh)
-    refresh()
+    sharedNotes.observe(
+      refreshNotes
+    )
+
+    refreshNotes()
 
     return () =>
-      sharedCode.unobserve(refresh)
-  }, [sharedCode])
-
-  // Keep Notepad synchronized with Yjs "notes".
-  useEffect(() => {
-    const refresh = () => {
-      setNotes(sharedNotes.toString())
-    }
-
-    sharedNotes.observe(refresh)
-    refresh()
-
-    return () =>
-      sharedNotes.unobserve(refresh)
+      sharedNotes.unobserve(
+        refreshNotes
+      )
   }, [sharedNotes])
 
-  const editCode = (value: string) => {
+  /*
+   * Local Python editor.
+   */
+  const editCode = (
+    value: string
+  ) => {
     if (value.length > MAX_CODE) {
-      value = value.slice(0, MAX_CODE)
+      value =
+        value.slice(0, MAX_CODE)
     }
-
-    const current = sharedCode.toString()
-
-    sharedCode.doc?.transact(() => {
-      sharedCode.delete(
-        0,
-        current.length
-      )
-
-      sharedCode.insert(
-        0,
-        value
-      )
-    })
 
     setCode(value)
   }
 
-  const editNotes = (value: string) => {
+  /*
+   * Collaborative Notepad editor.
+   */
+  const editNotes = (
+    value: string
+  ) => {
     if (value.length > MAX_NOTES) {
-      value = value.slice(0, MAX_NOTES)
+      value =
+        value.slice(0, MAX_NOTES)
     }
 
-    const current = sharedNotes.toString()
+    const current =
+      sharedNotes.toString()
 
-    sharedNotes.doc?.transact(() => {
-      sharedNotes.delete(
-        0,
-        current.length
-      )
+    sharedNotes.doc?.transact(
+      () => {
+        sharedNotes.delete(
+          0,
+          current.length
+        )
 
-      sharedNotes.insert(
-        0,
-        value
-      )
-    })
+        if (value.length > 0) {
+          sharedNotes.insert(
+            0,
+            value
+          )
+        }
+      },
+      'local-notes'
+    )
 
     setNotes(value)
   }
 
+  /*
+   * Execute THIS user's local Python code.
+   *
+   * The backend publishes only the result
+   * to the room.
+   */
   const run = async () => {
+    if (!code.trim()) {
+      setExecution({
+        status: 'failed',
+        output: '',
+        error:
+          'Python source cannot be empty.',
+        by: clientId
+      })
+
+      return
+    }
+
     if (code.length > MAX_CODE) {
       setExecution({
         status: 'failed',
         output: '',
-        error: `Source is limited to ${MAX_CODE.toLocaleString()} characters.`
+        error:
+          `Source is limited to ${MAX_CODE.toLocaleString()} characters.`,
+        by: clientId
       })
 
       return
@@ -635,31 +864,35 @@ function Workspace({
     })
 
     try {
-      const r = await fetch(
-        `${API_URL}/api/execute`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type':
-              'application/json'
-          },
-          body: JSON.stringify({
-            code,
-            roomId,
-            clientId
-          })
-        }
-      )
+      const response =
+        await fetch(
+          `${API_URL}/api/execute`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type':
+                'application/json'
+            },
+            body: JSON.stringify({
+              code,
+              roomId,
+              clientId
+            })
+          }
+        )
 
       const result =
-        await r.json() as {
+        (await response.json()) as {
           success: boolean
           output: string
           error: string | null
           kind?: Execution['status']
         }
 
-      if (!r.ok && r.status !== 422) {
+      if (
+        !response.ok &&
+        response.status !== 422
+      ) {
         throw new Error(
           result.error ||
             'Execution service unavailable'
@@ -671,18 +904,23 @@ function Workspace({
           ? 'completed'
           : result.kind === 'timeout'
           ? 'timeout'
+          : result.kind ===
+            'service-error'
+          ? 'service-error'
           : 'failed',
-        output: result.output || '',
-        error: result.error || null,
+        output:
+          result.output || '',
+        error:
+          result.error || null,
         by: clientId
       })
-    } catch (e) {
+    } catch (error) {
       setExecution({
         status: 'service-error',
         output: '',
         error:
-          e instanceof Error
-            ? e.message
+          error instanceof Error
+            ? error.message
             : 'Execution request failed',
         by: clientId
       })
@@ -691,6 +929,12 @@ function Workspace({
     }
   }
 
+  /*
+   * New room no longer reloads the browser.
+   *
+   * This prevents the button itself from triggering
+   * a Vercel navigation/404.
+   */
   const newRoom = () => {
     const id = slug()
 
@@ -700,46 +944,132 @@ function Workspace({
       `/nexus/room/${id}`
     )
 
-    location.reload()
+    window.dispatchEvent(
+      new PopStateEvent(
+        'popstate'
+      )
+    )
+  }
+
+  /*
+   * Robust clipboard function.
+   */
+  const copyText = async (
+    text: string
+  ) => {
+    if (
+      navigator.clipboard &&
+      window.isSecureContext
+    ) {
+      await navigator.clipboard.writeText(
+        text
+      )
+
+      return true
+    }
+
+    const textarea =
+      document.createElement(
+        'textarea'
+      )
+
+    textarea.value = text
+    textarea.setAttribute(
+      'readonly',
+      ''
+    )
+
+    textarea.style.position =
+      'fixed'
+    textarea.style.left = '-9999px'
+    textarea.style.top = '0'
+
+    document.body.appendChild(
+      textarea
+    )
+
+    textarea.focus()
+    textarea.select()
+    textarea.setSelectionRange(
+      0,
+      textarea.value.length
+    )
+
+    const successful =
+      document.execCommand(
+        'copy'
+      )
+
+    document.body.removeChild(
+      textarea
+    )
+
+    if (!successful) {
+      throw new Error(
+        'Clipboard access was blocked by the browser.'
+      )
+    }
+
+    return true
   }
 
   const copyInvite = async () => {
     try {
-      await navigator.clipboard.writeText(
+      await copyText(
         location.href
       )
-    } catch {
-      const input =
-        document.createElement('input')
 
-      input.value = location.href
-      document.body.appendChild(input)
-      input.select()
-      document.execCommand('copy')
-      input.remove()
+      setCopied(true)
+
+      window.setTimeout(
+        () => setCopied(false),
+        1800
+      )
+    } catch {
+      /*
+       * Last-resort visible fallback.
+       * The user can still copy the selected URL.
+       */
+      window.prompt(
+        'Copy this Nexus invite:',
+        location.href
+      )
     }
   }
 
   const shareInvite = async () => {
     const shareData = {
-      title: 'Join my Nexus room',
-      text: 'Join me in this Nexus collaborative workspace.',
+      title:
+        'Join my Nexus room',
+      text:
+        'Join me in this Nexus collaborative workspace.',
       url: location.href
     }
 
-    if (navigator.share) {
+    if (
+      typeof navigator.share ===
+      'function'
+    ) {
       try {
         await navigator.share(
           shareData
         )
-      } catch {}
-    } else {
-      await copyInvite()
+
+        return
+      } catch {
+        /*
+         * User cancellation or unsupported
+         * native share should not break anything.
+         */
+      }
     }
+
+    await copyInvite()
   }
 
   const executionText =
-    execution?.status === 'running'
+    execution?.status ===
+    'running'
       ? 'Running Python in isolated E2B sandbox…\n'
       : execution
       ? `${execution.output}${
@@ -750,7 +1080,7 @@ function Workspace({
               execution.error
             : ''
         }`
-      : 'Ready. Run Python to see shared output.'
+      : 'Ready. Run Python to see the shared execution result.'
 
   return (
     <main className="workspace">
@@ -765,7 +1095,8 @@ function Workspace({
         >
           {state === 'online'
             ? '● Synced'
-            : state === 'connecting'
+            : state ===
+              'connecting'
             ? '◌ Connecting…'
             : state === 'offline'
             ? '◌ Offline — local work retained'
@@ -787,8 +1118,12 @@ function Workspace({
           </small>
 
           <strong>
-            {roomId}
+            {roomName}
           </strong>
+
+          <div className="room-id">
+            {roomId}
+          </div>
         </div>
 
         <div className="room-actions">
@@ -796,7 +1131,9 @@ function Workspace({
             className="secondary-button"
             onClick={copyInvite}
           >
-            Copy invite
+            {copied
+              ? '✓ Copied'
+              : 'Copy invite'}
           </button>
 
           <button
@@ -809,10 +1146,6 @@ function Workspace({
       </section>
 
       <section className="workspace-grid">
-
-        {/* =====================================================
-            LEFT: INDEPENDENT COLLABORATIVE NOTEPAD
-            ===================================================== */}
         <section className="notepad-panel">
           <div className="pane-header">
             <div>
@@ -831,11 +1164,12 @@ function Workspace({
           </div>
 
           <textarea
-            ref={notesEditorRef}
             value={notes}
             spellCheck="true"
-            onChange={e =>
-              editNotes(e.target.value)
+            onChange={event =>
+              editNotes(
+                event.target.value
+              )
             }
             placeholder="Write notes, ideas, documentation, TODOs..."
             aria-label="Collaborative Nexus notepad"
@@ -844,8 +1178,10 @@ function Workspace({
 
           <div className="notepad-footer">
             <span>
-              {notes.length.toLocaleString()} /{' '}
-              {MAX_NOTES.toLocaleString()} chars
+              {notes.length.toLocaleString()}{' '}
+              /{' '}
+              {MAX_NOTES.toLocaleString()}{' '}
+              chars
             </span>
 
             <span>
@@ -856,17 +1192,12 @@ function Workspace({
           </div>
         </section>
 
-        {/* =====================================================
-            RIGHT: PYTHON RUNNER + TERMINAL
-            ===================================================== */}
         <section className="right-column">
-
-          {/* PYTHON RUNNER */}
           <section className="runner-panel">
             <div className="pane-header">
               <div>
                 <div className="pane-kicker">
-                  EXECUTION
+                  PRIVATE EXECUTION
                 </div>
 
                 <div className="pane-name">
@@ -880,15 +1211,15 @@ function Workspace({
             </div>
 
             <div className="runner-content">
-
               <textarea
-                ref={codeEditorRef}
                 value={code}
                 spellCheck="false"
-                onChange={e =>
-                  editCode(e.target.value)
+                onChange={event =>
+                  editCode(
+                    event.target.value
+                  )
                 }
-                aria-label="Python code editor"
+                aria-label="Private Python code editor"
                 className="python-editor"
                 placeholder='print("Hello Nexus")'
               />
@@ -896,7 +1227,7 @@ function Workspace({
               <div className="runner-controls">
                 <div className="runner-info">
                   <span className="dot" />
-                  Python · E2B sandbox
+                  Python · E2B sandbox · Private source
                 </div>
 
                 <button
@@ -918,17 +1249,16 @@ function Workspace({
               </span>
 
               <span>
-                Python source is independent from Notepad
+                Your Python code is private to you
               </span>
             </div>
           </section>
 
-          {/* TERMINAL */}
           <section className="terminal-panel">
             <div className="pane-header">
               <div>
                 <div className="pane-kicker">
-                  OUTPUT
+                  SHARED OUTPUT
                 </div>
 
                 <div className="pane-name">
@@ -938,7 +1268,8 @@ function Workspace({
 
               <span
                 className={`terminal-status ${
-                  execution?.status || 'ready'
+                  execution?.status ||
+                  'ready'
                 }`}
               >
                 {execution?.status ||
@@ -970,11 +1301,29 @@ function App() {
   const [room, setRoom] =
     useState(roomFromPath())
 
-  const [entered, setEntered] =
-    useState(false)
+  const [, forceRoute] =
+    useState(0)
+
+  useEffect(() => {
+    const handlePopState = () => {
+      setRoom(roomFromPath())
+      forceRoute(value => value + 1)
+    }
+
+    window.addEventListener(
+      'popstate',
+      handlePopState
+    )
+
+    return () =>
+      window.removeEventListener(
+        'popstate',
+        handlePopState
+      )
+  }, [])
 
   const enter = () => {
-    const id = room || slug()
+    const id = slug()
 
     history.pushState(
       {},
@@ -983,18 +1332,15 @@ function App() {
     )
 
     setRoom(id)
-    setEntered(true)
-  }
 
-  if (
-    room &&
-    (
-      entered ||
-      location.pathname.includes(
-        '/nexus/room/'
+    window.dispatchEvent(
+      new PopStateEvent(
+        'popstate'
       )
     )
-  ) {
+  }
+
+  if (room) {
     return (
       <Workspace
         roomId={room}
@@ -1025,35 +1371,21 @@ function App() {
         </h1>
 
         <p className="intro">
-          Realtime Python collaboration with
-          durable rooms, isolated execution,
-          and a live systems view.
+          Realtime collaborative notes,
+          private Python execution,
+          durable rooms, and a live
+          systems view.
         </p>
 
         <div className="enter">
-          <input
-            value={room}
-            onChange={e =>
-              setRoom(
-                e.target.value
-                  .toLowerCase()
-                  .replace(
-                    /[^a-z0-9-]/g,
-                    ''
-                  )
-              )
-            }
-            placeholder="room name (optional)"
-          />
-
           <button onClick={enter}>
             Enter Nexus →
           </button>
         </div>
 
         <p className="hint">
-          Python only · E2B-isolated execution ·
-          Ably CRDT sync
+          Shared Notepad · Private Python
+          · E2B execution · Ably sync
         </p>
       </div>
     </div>
@@ -1063,4 +1395,3 @@ function App() {
 createRoot(
   document.getElementById('root')!
 ).render(<App />)
-```

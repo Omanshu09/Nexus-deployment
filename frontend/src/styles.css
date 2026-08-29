@@ -21,8 +21,6 @@
 
   --success: #65e7b5;
   --warning: #ffad77;
-
-  --input: #0c0c0e;
 }
 
 :root[data-theme='light'] {
@@ -45,8 +43,6 @@
 
   --success: #16845e;
   --warning: #b45309;
-
-  --input: #ffffff;
 }
 
 * {
@@ -56,6 +52,7 @@
 html,
 body,
 #root {
+  width: 100%;
   min-height: 100%;
 }
 
@@ -84,7 +81,9 @@ button {
 ========================= */
 
 .landing {
-  min-height: 100vh;
+  width: 100%;
+  height: 100vh;
+  min-height: 620px;
   overflow: hidden;
   position: relative;
   background: #050505;
@@ -93,13 +92,24 @@ button {
 .canvas {
   position: absolute;
   inset: 0;
+  width: 100%;
+  height: 100%;
   opacity: 0.85;
 }
 
 .landing-content {
   position: relative;
   z-index: 1;
-  max-width: 680px;
+
+  width: min(680px, 48vw);
+
+  height: 100vh;
+  min-height: 620px;
+
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+
   padding: 48px 8vw;
 }
 
@@ -107,6 +117,7 @@ button {
   letter-spacing: 0.18em;
   font-weight: 700;
   font-size: 15px;
+
   display: flex;
   gap: 9px;
   align-items: center;
@@ -115,10 +126,15 @@ button {
 .brand i {
   width: 10px;
   height: 10px;
+
   background: #6ee7ff;
+
   display: inline-block;
+
   transform: rotate(45deg);
-  box-shadow: 0 0 20px #6ee7ff;
+
+  box-shadow:
+    0 0 20px #6ee7ff;
 }
 
 .brand span {
@@ -127,16 +143,26 @@ button {
 }
 
 .eyebrow {
-  margin-top: 15vh;
+  margin: 10vh 0 0;
+
   color: #6ee7ff;
+
   letter-spacing: 0.15em;
+
   font: 12px 'DM Mono', monospace;
 }
 
 .landing h1 {
-  font-size: clamp(3.5rem, 9vw, 7.4rem);
+  font-size: clamp(
+    3.2rem,
+    7vw,
+    6.8rem
+  );
+
   line-height: 0.91;
+
   letter-spacing: -0.06em;
+
   margin: 18px 0;
 }
 
@@ -147,47 +173,51 @@ button {
 
 .intro {
   max-width: 460px;
+
   color: #a1a1aa;
-  font-size: 18px;
-  line-height: 1.55;
+
+  font-size: 17px;
+  line-height: 1.5;
+
+  margin: 0;
 }
 
 .enter {
   display: flex;
-  margin-top: 32px;
+
+  margin-top: 28px;
+
   max-width: 500px;
-}
-
-.enter input {
-  flex: 1;
-  min-width: 0;
-  background: #101012dd;
-  border: 1px solid #36363d;
-  color: #f5f5f5;
-  border-radius: 8px 0 0 8px;
-  padding: 15px;
-  outline: none;
-  font: 14px 'DM Mono', monospace;
-}
-
-.enter input:focus {
-  border-color: #6ee7ff;
 }
 
 .enter button {
   border: 0;
+
   background: #6ee7ff;
+
   color: #06111e;
+
   font-weight: 700;
-  padding: 0 20px;
+
+  padding: 15px 24px;
+
   cursor: pointer;
-  border-radius: 0 8px 8px 0;
+
+  border-radius: 8px;
+
+  min-height: 50px;
+}
+
+.enter button:hover {
+  filter: brightness(1.08);
 }
 
 .hint {
   font: 11px 'DM Mono', monospace;
+
   color: #686871;
-  margin-top: 17px;
+
+  margin-top: 15px;
 }
 
 /* =========================
@@ -196,6 +226,7 @@ button {
 
 .workspace {
   min-height: 100vh;
+
   background:
     radial-gradient(
       circle at 80% -10%,
@@ -213,19 +244,31 @@ button {
 
 .workspace-header {
   height: 76px;
+
   display: flex;
   align-items: center;
+
   gap: 22px;
-  border-bottom: 1px solid var(--border);
+
+  border-bottom:
+    1px solid var(--border);
 }
 
 .workspace-header .brand i {
   background: var(--accent);
-  box-shadow: 0 0 18px rgba(139, 123, 255, 0.35);
+
+  box-shadow:
+    0 0 18px rgba(
+      139,
+      123,
+      255,
+      0.35
+    );
 }
 
 .status {
   font: 12px 'DM Mono', monospace;
+
   margin-left: auto;
 }
 
@@ -246,8 +289,11 @@ button {
 .secondary-button,
 .primary-button {
   border-radius: 7px;
+
   padding: 9px 13px;
+
   font: 12px 'DM Mono', monospace;
+
   transition:
     background 0.15s ease,
     border-color 0.15s ease,
@@ -256,15 +302,22 @@ button {
 
 .ghost {
   background: transparent;
-  border: 1px solid var(--border);
+
+  border:
+    1px solid var(--border);
+
   color: var(--text-secondary);
 }
 
 .ghost:hover,
 .secondary-button:hover {
-  border-color: var(--border-hover);
+  border-color:
+    var(--border-hover);
+
   color: var(--text);
-  background: var(--panel-2);
+
+  background:
+    var(--panel-2);
 }
 
 /* =========================
@@ -273,40 +326,68 @@ button {
 
 .roombar {
   display: flex;
-  justify-content: space-between;
+
+  justify-content:
+    space-between;
+
   align-items: center;
-  padding: 22px 0;
+
+  padding: 20px 0;
+
   gap: 20px;
 }
 
 .roombar small {
   font: 10px 'DM Mono', monospace;
+
   color: var(--text-muted);
+
   display: block;
+
   letter-spacing: 0.12em;
+
   margin-bottom: 5px;
 }
 
 .roombar strong {
   font: 17px 'DM Mono', monospace;
+
   color: var(--text);
+}
+
+.room-id {
+  margin-top: 4px;
+
+  font:
+    9px 'DM Mono',
+    monospace;
+
+  color: var(--text-muted);
 }
 
 .room-actions {
   display: flex;
+
   gap: 8px;
 }
 
 .secondary-button {
   background: transparent;
-  border: 1px solid var(--border);
+
+  border:
+    1px solid var(--border);
+
   color: var(--text-secondary);
 }
 
 .primary-button {
   background: var(--accent);
-  border: 1px solid var(--accent);
+
+  border:
+    1px solid var(--accent);
+
   color: white;
+
   font-weight: 600;
 }
 
@@ -315,13 +396,17 @@ button {
 }
 
 /* =========================
-   MAIN 50 / 50 LAYOUT
+   MAIN LAYOUT
 ========================= */
 
 .workspace-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+
+  grid-template-columns:
+    1fr 1fr;
+
   gap: 16px;
+
   min-height: 620px;
 }
 
@@ -333,8 +418,12 @@ button {
 .runner-panel,
 .terminal-panel {
   background: var(--panel);
-  border: 1px solid var(--border);
+
+  border:
+    1px solid var(--border);
+
   border-radius: 10px;
+
   overflow: hidden;
 
   transition:
@@ -344,51 +433,72 @@ button {
 
 .notepad-panel {
   min-height: 620px;
+
   display: flex;
+
   flex-direction: column;
 }
 
 .right-column {
   min-width: 0;
+
   display: grid;
-  grid-template-rows: 1fr 1fr;
+
+  grid-template-rows:
+    1fr 1fr;
+
   gap: 16px;
+
   min-height: 620px;
 }
 
 .runner-panel,
 .terminal-panel {
   min-height: 0;
+
   display: flex;
+
   flex-direction: column;
 }
 
 .pane-header {
   min-height: 64px;
-  border-bottom: 1px solid var(--border);
+
+  border-bottom:
+    1px solid var(--border);
+
   padding: 13px 17px;
 
   display: flex;
+
   align-items: center;
-  justify-content: space-between;
+
+  justify-content:
+    space-between;
 }
 
 .pane-kicker {
   font: 9px 'DM Mono', monospace;
+
   letter-spacing: 0.13em;
+
   color: var(--text-muted);
+
   margin-bottom: 4px;
 }
 
 .pane-name {
   font: 14px 'DM Mono', monospace;
+
   color: var(--text);
 }
 
 .pane-badge,
 .python-badge {
   display: flex;
+
   align-items: center;
+
   justify-content: center;
 
   width: 32px;
@@ -397,19 +507,49 @@ button {
   border-radius: 5px;
 
   font: 10px 'DM Mono', monospace;
+
   font-weight: 500;
 }
 
 .pane-badge {
-  color: var(--accent-strong);
-  border: 1px solid rgba(139, 123, 255, 0.25);
-  background: rgba(139, 123, 255, 0.08);
+  color:
+    var(--accent-strong);
+
+  border:
+    1px solid rgba(
+      139,
+      123,
+      255,
+      0.25
+    );
+
+  background:
+    rgba(
+      139,
+      123,
+      255,
+      0.08
+    );
 }
 
 .python-badge {
   color: var(--cyan);
-  border: 1px solid rgba(110, 231, 255, 0.2);
-  background: rgba(110, 231, 255, 0.06);
+
+  border:
+    1px solid rgba(
+      110,
+      231,
+      255,
+      0.2
+    );
+
+  background:
+    rgba(
+      110,
+      231,
+      255,
+      0.06
+    );
 }
 
 /* =========================
@@ -418,36 +558,55 @@ button {
 
 .notepad {
   flex: 1;
+
   width: 100%;
+
   resize: none;
 
   border: 0;
+
   outline: 0;
 
   background: transparent;
+
   color: var(--text);
 
   padding: 22px;
 
-  font: 14px/1.7 'DM Mono', monospace;
+  font:
+    14px/1.7
+    'DM Mono',
+    monospace;
 
-  caret-color: var(--accent);
+  caret-color:
+    var(--accent);
 }
 
 .notepad::selection {
-  background: rgba(139, 123, 255, 0.22);
+  background:
+    rgba(
+      139,
+      123,
+      255,
+      0.22
+    );
 }
 
-.notepad-footer {
+.notepad-footer,
+.runner-footer {
   min-height: 44px;
 
   display: flex;
-  justify-content: space-between;
+
+  justify-content:
+    space-between;
+
   align-items: center;
 
   padding: 0 16px;
 
-  border-top: 1px solid var(--border);
+  border-top:
+    1px solid var(--border);
 
   color: var(--text-muted);
 
@@ -460,94 +619,118 @@ button {
 
 .runner-content {
   min-height: 0;
+
   flex: 1;
+
   display: flex;
+
   flex-direction: column;
+
   padding: 16px;
+
   gap: 12px;
 }
 
-.runner-description {
-  color: var(--text-secondary);
-  font-size: 12px;
-  line-height: 1.5;
-}
-
-.runner-preview {
+.python-editor {
   flex: 1;
+
+  width: 100%;
+
   min-height: 0;
 
-  background: var(--panel-2);
-  border: 1px solid var(--border);
+  resize: none;
+
+  background:
+    var(--panel-2);
+
+  border:
+    1px solid var(--border);
 
   border-radius: 7px;
 
-  overflow: hidden;
+  outline: none;
 
-  display: flex;
-  flex-direction: column;
+  color: var(--text);
+
+  padding: 15px;
+
+  font:
+    13px/1.65
+    'DM Mono',
+    monospace;
+
+  caret-color:
+    var(--cyan);
 }
 
-.preview-label {
-  padding: 9px 12px;
-
-  border-bottom: 1px solid var(--border);
-
-  color: var(--text-muted);
-
-  font: 9px 'DM Mono', monospace;
-  letter-spacing: 0.1em;
+.python-editor:focus {
+  border-color:
+    var(--accent);
 }
 
-.runner-preview pre {
-  flex: 1;
-
-  margin: 0;
-  padding: 13px;
-
-  overflow: auto;
-
-  white-space: pre-wrap;
-  word-break: break-word;
-
-  color: var(--text-secondary);
-
-  font: 11px/1.55 'DM Mono', monospace;
+.python-editor::selection {
+  background:
+    rgba(
+      139,
+      123,
+      255,
+      0.22
+    );
 }
 
 .runner-controls {
   display: flex;
-  justify-content: space-between;
+
+  justify-content:
+    space-between;
+
   align-items: center;
+
   gap: 12px;
 }
 
 .runner-info {
   color: var(--text-muted);
-  font: 10px 'DM Mono', monospace;
+
+  font:
+    10px
+    'DM Mono',
+    monospace;
 
   display: flex;
+
   align-items: center;
+
   gap: 7px;
 }
 
 .dot {
   width: 6px;
   height: 6px;
+
   border-radius: 50%;
-  background: var(--success);
+
+  background:
+    var(--success);
 }
 
 .run {
   border: 0;
+
   border-radius: 6px;
 
-  background: var(--accent);
+  background:
+    var(--accent);
+
   color: white;
 
   padding: 9px 14px;
 
-  font: 11px 'DM Mono', monospace;
+  font:
+    11px
+    'DM Mono',
+    monospace;
+
   font-weight: 500;
 
   transition:
@@ -556,11 +739,13 @@ button {
 }
 
 .run:hover:not(:disabled) {
-  transform: translateY(-1px);
+  transform:
+    translateY(-1px);
 }
 
 .run:disabled {
   opacity: 0.5;
+
   cursor: not-allowed;
 }
 
@@ -569,49 +754,70 @@ button {
 ========================= */
 
 .terminal-status {
-  font: 10px 'DM Mono', monospace;
-  color: var(--text-muted);
+  font:
+    10px
+    'DM Mono',
+    monospace;
+
+  color:
+    var(--text-muted);
 }
 
 .terminal-status.completed {
-  color: var(--success);
+  color:
+    var(--success);
 }
 
 .terminal-status.running {
-  color: var(--accent-strong);
+  color:
+    var(--accent-strong);
 }
 
 .terminal-status.failed,
 .terminal-status.timeout,
 .terminal-status.service-error {
-  color: var(--warning);
+  color:
+    var(--warning);
 }
 
 .terminal-output {
   flex: 1;
+
   min-height: 0;
 
   margin: 0;
+
   padding: 18px;
 
   overflow: auto;
 
   white-space: pre-wrap;
-  word-break: break-word;
 
-  color: var(--success);
+  word-break:
+    break-word;
 
-  font: 12px/1.65 'DM Mono', monospace;
+  color:
+    var(--success);
+
+  font:
+    12px/1.65
+    'DM Mono',
+    monospace;
 }
 
 .terminal-note {
   padding: 11px 16px;
 
-  border-top: 1px solid var(--border);
+  border-top:
+    1px solid var(--border);
 
-  color: var(--text-muted);
+  color:
+    var(--text-muted);
 
-  font: 9px 'DM Mono', monospace;
+  font:
+    9px
+    'DM Mono',
+    monospace;
 }
 
 /* =========================
@@ -620,32 +826,47 @@ button {
 
 .theme-toggle {
   position: fixed;
+
   right: 22px;
   bottom: 18px;
 
   z-index: 50;
 
   display: flex;
+
   align-items: center;
+
   gap: 8px;
 
   padding: 7px 9px;
 
-  border: 1px solid var(--border);
+  border:
+    1px solid var(--border);
 
-  background: var(--panel);
+  background:
+    var(--panel);
 
   border-radius: 999px;
 
   box-shadow:
-    0 10px 30px rgba(0, 0, 0, 0.16);
+    0 10px 30px
+    rgba(
+      0,
+      0,
+      0,
+      0.16
+    );
 
-  backdrop-filter: blur(12px);
+  backdrop-filter:
+    blur(12px);
 }
 
 .theme-icon {
-  color: var(--text-muted);
+  color:
+    var(--text-muted);
+
   font-size: 13px;
+
   line-height: 1;
 }
 
@@ -661,9 +882,11 @@ button {
 
   padding: 0;
 
-  border: 1px solid var(--border);
+  border:
+    1px solid var(--border);
 
-  background: var(--panel-2);
+  background:
+    var(--panel-2);
 
   border-radius: 999px;
 
@@ -681,7 +904,8 @@ button {
 
   border-radius: 50%;
 
-  background: var(--text);
+  background:
+    var(--text);
 
   transition:
     transform 0.2s ease,
@@ -689,10 +913,12 @@ button {
 }
 
 .theme-switch.is-dark span {
-  transform: translateX(19px);
+  transform:
+    translateX(19px);
 }
 
-:root[data-theme='light'] .theme-switch span {
+:root[data-theme='light']
+.theme-switch span {
   background: #111113;
 }
 
@@ -702,7 +928,10 @@ button {
 
 * {
   scrollbar-width: thin;
-  scrollbar-color: var(--border-hover) transparent;
+
+  scrollbar-color:
+    var(--border-hover)
+    transparent;
 }
 
 ::-webkit-scrollbar {
@@ -715,7 +944,9 @@ button {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--border-hover);
+  background:
+    var(--border-hover);
+
   border-radius: 999px;
 }
 
@@ -725,11 +956,13 @@ button {
 
 @media (max-width: 900px) {
   .workspace {
-    padding: 0 3vw 80px;
+    padding:
+      0 3vw 80px;
   }
 
   .workspace-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns:
+      1fr;
   }
 
   .notepad-panel {
@@ -739,29 +972,69 @@ button {
   .right-column {
     min-height: 800px;
   }
+
+  .landing-content {
+    width: 60vw;
+  }
 }
 
 @media (max-width: 650px) {
+  .landing {
+    min-height: 100vh;
+    height: 100svh;
+  }
+
   .landing-content {
-    padding: 32px 7vw;
+    width: 100%;
+
+    height: 100svh;
+    min-height: 0;
+
+    padding:
+      28px 7vw;
+  }
+
+  .eyebrow {
+    margin-top: 8vh;
+  }
+
+  .landing h1 {
+    font-size:
+      clamp(
+        3rem,
+        15vw,
+        5rem
+      );
+  }
+
+  .intro {
+    font-size: 15px;
   }
 
   .workspace-header {
     height: auto;
+
     min-height: 70px;
+
     flex-wrap: wrap;
+
     padding: 15px 0;
   }
 
   .workspace-header .status {
     order: 3;
+
     width: 100%;
+
     margin-left: 0;
   }
 
   .roombar {
-    align-items: flex-start;
-    flex-direction: column;
+    align-items:
+      flex-start;
+
+    flex-direction:
+      column;
   }
 
   .room-actions {
@@ -778,48 +1051,42 @@ button {
 
   .right-column {
     gap: 12px;
+
+    min-height: 700px;
   }
 
   .notepad-panel {
     min-height: 440px;
   }
 
-  .right-column {
-    min-height: 700px;
-  }
-
   .runner-controls {
-    align-items: flex-start;
-    flex-direction: column;
+    align-items:
+      flex-start;
+
+    flex-direction:
+      column;
   }
 
   .run {
     width: 100%;
   }
 
-  .notepad-footer {
+  .notepad-footer,
+  .runner-footer {
     gap: 8px;
-    align-items: flex-start;
-    flex-direction: column;
-    padding: 10px 16px;
+
+    align-items:
+      flex-start;
+
+    flex-direction:
+      column;
+
+    padding:
+      10px 16px;
   }
 
   .theme-toggle {
     right: 14px;
     bottom: 14px;
-  }
-
-  .enter {
-    flex-direction: column;
-  }
-
-  .enter input {
-    border-radius: 8px;
-  }
-
-  .enter button {
-    margin-top: 8px;
-    min-height: 48px;
-    border-radius: 8px;
   }
 }
