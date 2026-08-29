@@ -1,3 +1,4 @@
+
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { createRoot } from 'react-dom/client'
 import * as Ably from 'ably'
@@ -10,6 +11,7 @@ import './styles.css'
 
 const API_URL = (import.meta.env.VITE_API_URL || 'http://localhost:8787').replace(/\/$/, '')
 const MAX_CODE = 20_000
+const MAX_NOTES = 20_000
 
 type Connection = 'connecting' | 'online' | 'offline' | 'error'
 
@@ -147,8 +149,15 @@ function useRoom(roomId: string) {
 
   const doc = useMemo(() => new Y.Doc(), [roomId])
 
-  const text = useMemo(
+  // IMPORTANT:
+  // These are TWO completely independent Yjs shared texts.
+  const code = useMemo(
     () => doc.getText('code'),
+    [doc]
+  )
+
+  const notes = useMemo(
+    () => doc.getText('notes'),
     [doc]
   )
 
@@ -313,7 +322,9 @@ function useRoom(roomId: string) {
                 'y-update',
                 bytesToBase64(update)
               )
-              .catch(() => setState('offline'))
+              .catch(() =>
+                setState('offline')
+              )
           }
         }
 
@@ -326,7 +337,10 @@ function useRoom(roomId: string) {
               setState('online')
 
               channel
-                ?.publish('sync-request', { clientId })
+                ?.publish(
+                  'sync-request',
+                  { clientId }
+                )
                 .catch(() => undefined)
             }
           }
@@ -381,11 +395,14 @@ function useRoom(roomId: string) {
           )
         }
 
-        text.observe(scheduleSave)
+        // Both the Notepad and Python Runner are persisted.
+        code.observe(scheduleSave)
+        notes.observe(scheduleSave)
 
         return () => {
           doc.off('update', publish)
-          text.unobserve(scheduleSave)
+          code.unobserve(scheduleSave)
+          notes.unobserve(scheduleSave)
           clearTimeout(saveTimer)
         }
       } catch {
@@ -409,11 +426,12 @@ function useRoom(roomId: string) {
       persist?.destroy()
       doc.destroy()
     }
-  }, [roomId, doc, text])
+  }, [roomId, doc, code, notes])
 
   return {
     doc,
-    text,
+    code,
+    notes,
     state,
     execution,
     setExecution
@@ -468,7 +486,8 @@ function Workspace({
   roomId: string
 }) {
   const {
-    text,
+    code: sharedCode,
+    notes: sharedNotes,
     state,
     execution,
     setExecution
@@ -477,6 +496,8 @@ function Workspace({
   const [code, setCode] = useState(
     'print("Hello Nexus")'
   )
+
+  const [notes, setNotes] = useState('')
 
   const [running, setRunning] =
     useState(false)
@@ -493,7 +514,10 @@ function Workspace({
         : 'dark'
     })
 
-  const editorRef =
+  const codeEditorRef =
+    useRef<HTMLTextAreaElement>(null)
+
+  const notesEditorRef =
     useRef<HTMLTextAreaElement>(null)
 
   useEffect(() => {
@@ -506,26 +530,88 @@ function Workspace({
     )
   }, [theme])
 
+  // Keep Python Runner synchronized with Yjs "code".
   useEffect(() => {
-    const refresh = () =>
-      setCode(text.toString())
+    const refresh = () => {
+      const value = sharedCode.toString()
 
-    text.observe(refresh)
+      // Preserve the starter Python code for a brand-new room.
+      if (!value) {
+        if (sharedCode.length === 0) {
+          sharedCode.insert(
+            0,
+            'print("Hello Nexus")'
+          )
+        }
+
+        return
+      }
+
+      setCode(value)
+    }
+
+    sharedCode.observe(refresh)
     refresh()
 
     return () =>
-      text.unobserve(refresh)
-  }, [text])
+      sharedCode.unobserve(refresh)
+  }, [sharedCode])
 
-  const edit = (value: string) => {
-    const current = text.toString()
+  // Keep Notepad synchronized with Yjs "notes".
+  useEffect(() => {
+    const refresh = () => {
+      setNotes(sharedNotes.toString())
+    }
 
-    text.doc?.transact(() => {
-      text.delete(0, current.length)
-      text.insert(0, value)
+    sharedNotes.observe(refresh)
+    refresh()
+
+    return () =>
+      sharedNotes.unobserve(refresh)
+  }, [sharedNotes])
+
+  const editCode = (value: string) => {
+    if (value.length > MAX_CODE) {
+      value = value.slice(0, MAX_CODE)
+    }
+
+    const current = sharedCode.toString()
+
+    sharedCode.doc?.transact(() => {
+      sharedCode.delete(
+        0,
+        current.length
+      )
+
+      sharedCode.insert(
+        0,
+        value
+      )
     })
 
     setCode(value)
+  }
+
+  const editNotes = (value: string) => {
+    if (value.length > MAX_NOTES) {
+      value = value.slice(0, MAX_NOTES)
+    }
+
+    const current = sharedNotes.toString()
+
+    sharedNotes.doc?.transact(() => {
+      sharedNotes.delete(
+        0,
+        current.length
+      )
+
+      sharedNotes.insert(
+        0,
+        value
+      )
+    })
+
+    setNotes(value)
   }
 
   const run = async () => {
@@ -641,11 +727,11 @@ function Workspace({
       url: location.href
     }
 
-    if (
-      navigator.share
-    ) {
+    if (navigator.share) {
       try {
-        await navigator.share(shareData)
+        await navigator.share(
+          shareData
+        )
       } catch {}
     } else {
       await copyInvite()
@@ -723,7 +809,10 @@ function Workspace({
       </section>
 
       <section className="workspace-grid">
-        {/* LEFT: FULL COLLABORATIVE NOTEPAD */}
+
+        {/* =====================================================
+            LEFT: INDEPENDENT COLLABORATIVE NOTEPAD
+            ===================================================== */}
         <section className="notepad-panel">
           <div className="pane-header">
             <div>
@@ -742,20 +831,21 @@ function Workspace({
           </div>
 
           <textarea
-            ref={editorRef}
-            value={code}
-            spellCheck="false"
+            ref={notesEditorRef}
+            value={notes}
+            spellCheck="true"
             onChange={e =>
-              edit(e.target.value)
+              editNotes(e.target.value)
             }
+            placeholder="Write notes, ideas, documentation, TODOs..."
             aria-label="Collaborative Nexus notepad"
             className="notepad"
           />
 
           <div className="notepad-footer">
             <span>
-              {code.length.toLocaleString()} /{' '}
-              {MAX_CODE.toLocaleString()} chars
+              {notes.length.toLocaleString()} /{' '}
+              {MAX_NOTES.toLocaleString()} chars
             </span>
 
             <span>
@@ -766,8 +856,11 @@ function Workspace({
           </div>
         </section>
 
-        {/* RIGHT SIDE */}
+        {/* =====================================================
+            RIGHT: PYTHON RUNNER + TERMINAL
+            ===================================================== */}
         <section className="right-column">
+
           {/* PYTHON RUNNER */}
           <section className="runner-panel">
             <div className="pane-header">
@@ -787,26 +880,18 @@ function Workspace({
             </div>
 
             <div className="runner-content">
-              <div className="runner-description">
-                Run the Python code currently
-                written in the collaborative
-                notepad.
-              </div>
 
-              <div className="runner-preview">
-                <div className="preview-label">
-                  CURRENT SOURCE
-                </div>
-
-                <pre>
-                  {code.length > 900
-                    ? `${code.slice(
-                        0,
-                        900
-                      )}\n…`
-                    : code}
-                </pre>
-              </div>
+              <textarea
+                ref={codeEditorRef}
+                value={code}
+                spellCheck="false"
+                onChange={e =>
+                  editCode(e.target.value)
+                }
+                aria-label="Python code editor"
+                className="python-editor"
+                placeholder='print("Hello Nexus")'
+              />
 
               <div className="runner-controls">
                 <div className="runner-info">
@@ -824,6 +909,17 @@ function Workspace({
                     : '▶ Run Python'}
                 </button>
               </div>
+            </div>
+
+            <div className="runner-footer">
+              <span>
+                {code.length.toLocaleString()} /{' '}
+                {MAX_CODE.toLocaleString()} chars
+              </span>
+
+              <span>
+                Python source is independent from Notepad
+              </span>
             </div>
           </section>
 
@@ -892,13 +988,17 @@ function App() {
 
   if (
     room &&
-    (entered ||
+    (
+      entered ||
       location.pathname.includes(
         '/nexus/room/'
-      ))
+      )
+    )
   ) {
     return (
-      <Workspace roomId={room} />
+      <Workspace
+        roomId={room}
+      />
     )
   }
 
@@ -963,3 +1063,4 @@ function App() {
 createRoot(
   document.getElementById('root')!
 ).render(<App />)
+```
