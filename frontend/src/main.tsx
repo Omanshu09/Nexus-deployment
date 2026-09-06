@@ -747,7 +747,7 @@ function Workspace({
   }
 
 
-  con  st editNotes = (
+  const editNotes = (
     value: string
   ) => {
     if (value.length > MAX_NOTES) {
