@@ -55,7 +55,6 @@ const clientId = (() => {
   return id
 })()
 
-
 const adjectives = [
   'lunar',
   'neon',
@@ -172,11 +171,7 @@ function Network() {
             />
 
             <meshBasicMaterial
-              color={
-                index % 3
-                  ? '#6ee7ff'
-                  : '#a78bfa'
-              }
+              color="#222222"
             />
           </mesh>
         </Float>
@@ -194,9 +189,9 @@ function Network() {
                     points.length
                 ]
               ]}
-              color="#224b75"
+              color="#555555"
               transparent
-              opacity={0.6}
+              opacity={0.35}
               lineWidth={1}
             />
           )
@@ -215,7 +210,7 @@ function Hero3D() {
     >
       <color
         attach="background"
-        args={['#050505']}
+        args={['#ffffff']}
       />
 
       <ambientLight intensity={0.7} />
@@ -224,7 +219,6 @@ function Hero3D() {
     </Canvas>
   )
 }
-
 
 function useRoom(roomId: string) {
   const [state, setState] =
@@ -264,7 +258,6 @@ function useRoom(roomId: string) {
 
     const start = async () => {
       try {
-        
         const response = await fetch(
           `${API_URL}/api/rooms/${encodeURIComponent(
             roomId
@@ -290,7 +283,6 @@ function useRoom(roomId: string) {
           )
         }
 
-        
         persistence =
           new IndexeddbPersistence(
             `nexus-${roomId}`,
@@ -352,7 +344,6 @@ function useRoom(roomId: string) {
             `nexus:room:${roomId}`
           )
 
-       
         channel.subscribe(
           'y-update',
           message => {
@@ -371,13 +362,10 @@ function useRoom(roomId: string) {
                 ),
                 'ably'
               )
-            } catch {
-             
-            }
+            } catch {}
           }
         )
 
-        
         channel.subscribe(
           'sync-request',
           message => {
@@ -431,14 +419,11 @@ function useRoom(roomId: string) {
                   ),
                   'ably'
                 )
-              } catch {
-             
-              }
+              } catch {}
             }
           }
         )
 
-        
         channel.subscribe(
           'execution',
           message => {
@@ -448,7 +433,6 @@ function useRoom(roomId: string) {
           }
         )
 
-       
         const publishUpdate = (
           update: Uint8Array,
           origin: unknown
@@ -520,7 +504,6 @@ function useRoom(roomId: string) {
           }
         )
 
-        
         const scheduleSave = () => {
           window.clearTimeout(
             saveTimer
@@ -673,13 +656,11 @@ function Workspace({
     setExecution
   } = useRoom(roomId)
 
-  
   const [code, setCode] =
     useState(
       'print("Hello Nexus")'
     )
 
-  
   const [notes, setNotes] =
     useState('')
 
@@ -696,9 +677,9 @@ function Workspace({
           'nexus-theme'
         )
 
-      return saved === 'light'
-        ? 'light'
-        : 'dark'
+      return saved === 'dark'
+        ? 'dark'
+        : 'light'
     })
 
   const roomName =
@@ -713,7 +694,6 @@ function Workspace({
       theme
     )
   }, [theme])
-
 
   useEffect(() => {
     const refreshNotes = () => {
@@ -734,7 +714,6 @@ function Workspace({
       )
   }, [sharedNotes])
 
-  
   const editCode = (
     value: string
   ) => {
@@ -745,7 +724,6 @@ function Workspace({
 
     setCode(value)
   }
-
 
   const editNotes = (
     value: string
@@ -778,7 +756,6 @@ function Workspace({
     setNotes(value)
   }
 
-  
   const run = async () => {
     if (!code.trim()) {
       setExecution({
@@ -879,7 +856,6 @@ function Workspace({
     }
   }
 
-  
   const newRoom = () => {
     const id = slug()
 
@@ -896,7 +872,6 @@ function Workspace({
     )
   }
 
- 
   const copyText = async (
     text: string
   ) => {
@@ -969,7 +944,6 @@ function Workspace({
         1800
       )
     } catch {
-     
       window.prompt(
         'Copy this Nexus invite:',
         location.href
@@ -996,9 +970,7 @@ function Workspace({
         )
 
         return
-      } catch {
-        
-      }
+      } catch {}
     }
 
     await copyInvite()
