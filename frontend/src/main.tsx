@@ -55,10 +55,7 @@ const clientId = (() => {
   return id
 })()
 
-/*
- * Room IDs are URL-safe.
- * The displayed room name is generated from the same ID.
- */
+
 const adjectives = [
   'lunar',
   'neon',
@@ -228,16 +225,7 @@ function Hero3D() {
   )
 }
 
-/*
- * IMPORTANT ARCHITECTURE:
- *
- * Yjs contains ONLY the collaborative Notepad.
- *
- * Python code is deliberately NOT inside Yjs.
- * Therefore each browser has its own Python editor.
- *
- * Execution results remain shared through Ably.
- */
+
 function useRoom(roomId: string) {
   const [state, setState] =
     useState<Connection>('connecting')
@@ -276,9 +264,7 @@ function useRoom(roomId: string) {
 
     const start = async () => {
       try {
-        /*
-         * Load saved collaborative Notepad state.
-         */
+        
         const response = await fetch(
           `${API_URL}/api/rooms/${encodeURIComponent(
             roomId
@@ -304,19 +290,13 @@ function useRoom(roomId: string) {
           )
         }
 
-        /*
-         * Local IndexedDB persistence applies
-         * to the shared Notepad document only.
-         */
+        
         persistence =
           new IndexeddbPersistence(
             `nexus-${roomId}`,
             doc
           )
 
-        /*
-         * Ably authentication.
-         */
         realtime =
           new Ably.Realtime({
             authCallback: async (
@@ -372,9 +352,7 @@ function useRoom(roomId: string) {
             `nexus:room:${roomId}`
           )
 
-        /*
-         * Collaborative Notepad updates.
-         */
+       
         channel.subscribe(
           'y-update',
           message => {
@@ -394,14 +372,12 @@ function useRoom(roomId: string) {
                 'ably'
               )
             } catch {
-              // Ignore malformed remote updates.
+             
             }
           }
         )
 
-        /*
-         * Initial room synchronization.
-         */
+        
         channel.subscribe(
           'sync-request',
           message => {
@@ -456,18 +432,13 @@ function useRoom(roomId: string) {
                   'ably'
                 )
               } catch {
-                // Ignore malformed state.
+             
               }
             }
           }
         )
 
-        /*
-         * Execution results are shared.
-         *
-         * The Python SOURCE is not shared.
-         * Only the RESULT is shared.
-         */
+        
         channel.subscribe(
           'execution',
           message => {
@@ -477,9 +448,7 @@ function useRoom(roomId: string) {
           }
         )
 
-        /*
-         * Publish only collaborative Notepad updates.
-         */
+       
         const publishUpdate = (
           update: Uint8Array,
           origin: unknown
@@ -551,9 +520,7 @@ function useRoom(roomId: string) {
           }
         )
 
-        /*
-         * Persist ONLY the collaborative Notepad.
-         */
+        
         const scheduleSave = () => {
           window.clearTimeout(
             saveTimer
@@ -706,19 +673,13 @@ function Workspace({
     setExecution
   } = useRoom(roomId)
 
-  /*
-   * Python is LOCAL to this browser.
-   *
-   * It deliberately does not come from Yjs.
-   */
+  
   const [code, setCode] =
     useState(
       'print("Hello Nexus")'
     )
 
-  /*
-   * Notepad is collaborative.
-   */
+  
   const [notes, setNotes] =
     useState('')
 
@@ -753,9 +714,7 @@ function Workspace({
     )
   }, [theme])
 
-  /*
-   * Receive shared Notepad updates.
-   */
+
   useEffect(() => {
     const refreshNotes = () => {
       setNotes(
@@ -775,9 +734,7 @@ function Workspace({
       )
   }, [sharedNotes])
 
-  /*
-   * Local Python editor.
-   */
+  
   const editCode = (
     value: string
   ) => {
@@ -789,10 +746,8 @@ function Workspace({
     setCode(value)
   }
 
-  /*
-   * Collaborative Notepad editor.
-   */
-  const editNotes = (
+
+  con  st editNotes = (
     value: string
   ) => {
     if (value.length > MAX_NOTES) {
@@ -823,12 +778,7 @@ function Workspace({
     setNotes(value)
   }
 
-  /*
-   * Execute THIS user's local Python code.
-   *
-   * The backend publishes only the result
-   * to the room.
-   */
+  
   const run = async () => {
     if (!code.trim()) {
       setExecution({
@@ -929,12 +879,7 @@ function Workspace({
     }
   }
 
-  /*
-   * New room no longer reloads the browser.
-   *
-   * This prevents the button itself from triggering
-   * a Vercel navigation/404.
-   */
+  
   const newRoom = () => {
     const id = slug()
 
@@ -951,9 +896,7 @@ function Workspace({
     )
   }
 
-  /*
-   * Robust clipboard function.
-   */
+ 
   const copyText = async (
     text: string
   ) => {
@@ -1026,10 +969,7 @@ function Workspace({
         1800
       )
     } catch {
-      /*
-       * Last-resort visible fallback.
-       * The user can still copy the selected URL.
-       */
+     
       window.prompt(
         'Copy this Nexus invite:',
         location.href
@@ -1057,10 +997,7 @@ function Workspace({
 
         return
       } catch {
-        /*
-         * User cancellation or unsupported
-         * native share should not break anything.
-         */
+        
       }
     }
 
