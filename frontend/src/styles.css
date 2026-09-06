@@ -76,9 +76,6 @@ button {
   cursor: pointer;
 }
 
-/* =========================
-   LANDING
-========================= */
 
 .landing {
   width: 100%;
@@ -220,9 +217,7 @@ button {
   margin-top: 15px;
 }
 
-/* =========================
-   WORKSPACE
-========================= */
+
 
 .workspace {
   min-height: 100vh;
@@ -320,9 +315,7 @@ button {
     var(--panel-2);
 }
 
-/* =========================
-   ROOM BAR
-========================= */
+
 
 .roombar {
   display: flex;
@@ -395,9 +388,7 @@ button {
   filter: brightness(1.08);
 }
 
-/* =========================
-   MAIN LAYOUT
-========================= */
+
 
 .workspace-grid {
   display: grid;
@@ -410,9 +401,6 @@ button {
   min-height: 620px;
 }
 
-/* =========================
-   PANELS
-========================= */
 
 .notepad-panel,
 .runner-panel,
@@ -552,9 +540,7 @@ button {
     );
 }
 
-/* =========================
-   NOTEPAD
-========================= */
+
 
 .notepad {
   flex: 1;
@@ -613,9 +599,7 @@ button {
   font: 10px 'DM Mono', monospace;
 }
 
-/* =========================
-   PYTHON RUNNER
-========================= */
+
 
 .runner-content {
   min-height: 0;
@@ -749,9 +733,7 @@ button {
   cursor: not-allowed;
 }
 
-/* =========================
-   TERMINAL
-========================= */
+
 
 .terminal-status {
   font:
@@ -820,9 +802,7 @@ button {
     monospace;
 }
 
-/* =========================
-   THEME SWITCH
-========================= */
+
 
 .theme-toggle {
   position: fixed;
@@ -922,9 +902,6 @@ button {
   background: #111113;
 }
 
-/* =========================
-   SCROLLBARS
-========================= */
 
 * {
   scrollbar-width: thin;
@@ -950,9 +927,7 @@ button {
   border-radius: 999px;
 }
 
-/* =========================
-   RESPONSIVE
-========================= */
+
 
 @media (max-width: 900px) {
   .workspace {
